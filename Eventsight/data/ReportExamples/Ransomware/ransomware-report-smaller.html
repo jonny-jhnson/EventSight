@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventSight Security Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .summary-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .summary-item .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        .summary-item .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .severity-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .severity-critical { background: #fef2f2; color: #991b1b; border: 2px solid #fca5a5; }
+        .severity-high { background: #fff7ed; color: #c2410c; border: 2px solid #fdba74; }
+        .severity-medium { background: #fefce8; color: #a16207; border: 2px solid #fde047; }
+        .severity-low { background: #eff6ff; color: #1d4ed8; border: 2px solid #93c5fd; }
+        .severity-info { background: #f9fafb; color: #4b5563; border: 2px solid #d1d5db; }
+        .finding {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .finding-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .finding-severity {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .finding-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #111827;
+            flex: 1;
+        }
+        .finding-confidence {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .finding-body {
+            padding: 1.25rem;
+        }
+        .finding-description {
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .finding-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .meta-tag {
+            background: #f3f4f6;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .meta-tag.technique {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .meta-tag.tactic {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .recommendation {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            color: #065f46;
+            margin-top: 1rem;
+        }
+        .recommendation::before {
+            content: "Recommendation: ";
+            font-weight: 600;
+        }
+        .context-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .context-section h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.5rem;
+        }
+        .context-item {
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .context-item .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .context-item .value {
+            color: #111827;
+            word-break: break-all;
+        }
+        .event-ids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        .event-id {
+            background: #1e1b4b;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.875rem;
+        }
+        .no-findings {
+            text-align: center;
+            padding: 3rem;
+            color: #059669;
+        }
+        .no-findings svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EventSight Security Report</h1>
+            <p class="subtitle">Claude-Powered Windows Event Log Analysis</p>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Analysis Summary</h2>
+            </div>
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="label">File Analyzed</div>
+                        <div class="value" style="font-size: 0.9rem; word-break: break-all;">Security-Smaller.evtx</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Analysis Date</div>
+                        <div class="value">2025-12-10 09:53</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Events Analyzed</div>
+                        <div class="value">17 <span style="font-size: 0.75rem; color: #6b7280;">of 22</span></div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Total Findings</div>
+                        <div class="value">3</div>
+                    </div>
+                </div>
+
+                <div class="severity-bar">
+                    <span class="severity-badge severity-critical">1 Critical</span>
+                    <span class="severity-badge severity-high">1 High</span>
+                    <span class="severity-badge severity-medium">1 Medium</span>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; line-height: 1.5;">
+Critical Akira ransomware activity detected with lateral movement from ASGARD-WRKSTN to Wakanda-Wrkstn, including ransom note deployment and sensitive file access via administrative shares.
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Detailed Findings</h2>
+            </div>
+            <div class="card-body">
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Activity - Remote File Access and Ransom Note Deployment</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:50:49</span>
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple Akira ransomware indicators detected including remote access to &#x27;akira_readme.txt&#x27; files in both main directory and subdirectory. Akira is a known ransomware family that drops ransom notes with this specific filename pattern. The activity shows lateral movement from ASGARD-WRKSTN (172.22.86.78) to Wakanda-Wrkstn accessing the C$ share and interacting with ransomware artifacts. The presence of multiple akira_readme.txt files in different directories (TestFolder and TestFolder\FakeFolder) suggests active ransomware deployment or post-infection reconnaissance.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210095326_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 4624</span>
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate both systems, hunt for additional Akira ransomware artifacts across the network, check for file encryption activity, and review backup integrity. Investigate the initial compromise vector on ASGARD-WRKSTN.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:52573</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Lateral Movement - Network Logon and Sensitive File Access</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:50:49</span>
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Network logon (Type 3) from ASGARD-WRKSTN to Wakanda-Wrkstn followed by access to sensitive files including &#x27;passwords.txt&#x27; via administrative share (C$). This represents successful lateral movement with access to potentially credential-containing files. The threat actor used NTLM authentication and accessed multiple files suggesting reconnaissance or data collection activities.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210095326_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 4624</span>
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Investigate the thor account for compromise, review passwords.txt content for exposed credentials, audit all systems accessible from ASGARD-WRKSTN, and implement network segmentation to prevent further lateral movement.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:52573</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">passwords.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">Administrative Share Access for Data Collection</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:50:49</span>
+                        <span class="finding-confidence">75% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Remote access to C$ administrative share from ASGARD-WRKSTN with systematic file enumeration and access patterns. The threat actor accessed multiple file types including documents (quarterly-report.docx), PDFs (canary.pdf), and log files (DumpStack.log), indicating potential data collection or reconnaissance activities. The broad file access permissions (0x13019f) suggest full read/write capabilities.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210095326_2</span>
+                            <span class="meta-tag technique">T1005</span>
+                            <span class="meta-tag tactic">Collection</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Review the accessed files for sensitive content, monitor for data exfiltration attempts, and restrict administrative share access. Analyze file access patterns to determine if data was copied or modified.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:52573</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated by EventSight | Analysis ID: analysis_20251210_095326_d3d544b2</p>
+            <p>Report generated on 2025-12-10 at 09:57:25</p>
+        </footer>
+    </div>
+</body>
+</html>

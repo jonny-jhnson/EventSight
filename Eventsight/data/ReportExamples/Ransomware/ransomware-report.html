@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventSight Security Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .summary-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .summary-item .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        .summary-item .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .severity-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .severity-critical { background: #fef2f2; color: #991b1b; border: 2px solid #fca5a5; }
+        .severity-high { background: #fff7ed; color: #c2410c; border: 2px solid #fdba74; }
+        .severity-medium { background: #fefce8; color: #a16207; border: 2px solid #fde047; }
+        .severity-low { background: #eff6ff; color: #1d4ed8; border: 2px solid #93c5fd; }
+        .severity-info { background: #f9fafb; color: #4b5563; border: 2px solid #d1d5db; }
+        .finding {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .finding-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .finding-severity {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .finding-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #111827;
+            flex: 1;
+        }
+        .finding-confidence {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .finding-body {
+            padding: 1.25rem;
+        }
+        .finding-description {
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .finding-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .meta-tag {
+            background: #f3f4f6;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .meta-tag.technique {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .meta-tag.tactic {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .recommendation {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            color: #065f46;
+            margin-top: 1rem;
+        }
+        .recommendation::before {
+            content: "Recommendation: ";
+            font-weight: 600;
+        }
+        .context-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .context-section h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.5rem;
+        }
+        .context-item {
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .context-item .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .context-item .value {
+            color: #111827;
+            word-break: break-all;
+        }
+        .event-ids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        .event-id {
+            background: #1e1b4b;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.875rem;
+        }
+        .no-findings {
+            text-align: center;
+            padding: 3rem;
+            color: #059669;
+        }
+        .no-findings svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EventSight Security Report</h1>
+            <p class="subtitle">Claude-Powered Windows Event Log Analysis</p>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Analysis Summary</h2>
+            </div>
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="label">File Analyzed</div>
+                        <div class="value" style="font-size: 0.9rem; word-break: break-all;">Security.evtx</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Analysis Date</div>
+                        <div class="value">2025-12-10 10:12</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Events Analyzed</div>
+                        <div class="value">304 <span style="font-size: 0.75rem; color: #6b7280;">of 313</span></div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Total Findings</div>
+                        <div class="value">20</div>
+                    </div>
+                </div>
+
+                <div class="severity-bar">
+                    <span class="severity-badge severity-critical">9 Critical</span>
+                    <span class="severity-badge severity-high">7 High</span>
+                    <span class="severity-badge severity-medium">4 Medium</span>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; line-height: 1.5;">
+Detected 9 critical, 7 high, 4 medium severity finding(s).<br><br>Activity Summary:<br>[H] Lateral Movement via Administrative Shares (T1021.002) [Matched: Potential Lateral Movement - Network Logon to Process Execution]<br>    → User: MARVEL\thor | Source: ASGARD-WRKSTN (172.22.86.78)<br>[C] Akira Ransomware Attack - Multiple Ransom Notes Deployed (T1486)<br>    → User: MARVEL\thor | Source: ASGARD-WRKSTN (172.22.86.78)<br>[M] Sensitive File Access - Credentials and Business Documents (T1005)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[M] User Profile Directory Enumeration (T1083)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware File Creation via Administrative Share Access (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware File Access Pattern Detected (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware Activity - Remote File Access and Ransom Note Deployment (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware Attack - File Encryption and Ransom Note Deployment (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware Activity - Ransom Note Deployment (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] File Encryption Activity - Akira Ransomware (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware Activity - Remote File Access via Administrative Share (T1486)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[C] Akira Ransomware Deployment via Administrative Share (T1486)<br>[H] Lateral Movement via Administrative Share Access (T1021.002)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[H] Lateral Movement via Administrative Share (T1021.002)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[H] Unauthorized Administrative Share Access with Directory Enumeration (T1021.002)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[H] Unauthorized Administrative Share Access (T1021.002)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[H] Lateral Movement via Administrative Share Enumeration (T1021.002)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[H] Credential Store Access via Network Share (T1555.004)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[M] Systematic User Profile Directory Enumeration (T1083)<br>    → User: MARVEL\thor | Source: 172.22.86.78<br>[M] Administrative Share Enumeration and File System Traversal (T1135)<br>    → User: MARVEL\thor | Source: 172.22.86.78
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Detailed Findings</h2>
+            </div>
+            <div class="card-body">
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware File Creation via Administrative Share Access</span>
+                        
+                        <span class="finding-confidence">98% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple &#x27;akira_readme.txt&#x27; files are being created across user directories via the C$ administrative share by user &#x27;thor&#x27; from IP 172.22.86.78. The filename pattern &#x27;akira_readme.txt&#x27; is a known indicator of Akira ransomware deployment. The files are being placed in multiple user profile locations including AppData\LocalLow, Saved Games, WindowsApps, SendTo, and AppData\Roaming directories - a classic ransomware behavior of dropping ransom notes in easily discoverable locations. The access patterns show both directory traversal (0x100081 mask) and file creation/modification operations (0x120196 mask), consistent with automated ransomware deployment.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101104_b8_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate the source system at IP 172.22.86.78 and the target workstation. Check for file encryption activity, examine network traffic for lateral movement, and verify backup integrity. Search for additional &#x27;akira_readme.txt&#x27; files across the environment and initiate incident response procedures for ransomware.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Attack - Multiple Ransom Notes Deployed</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:07:52</span>
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple instances of &#x27;akira_readme.txt&#x27; files were created and accessed across different directories (TestFolder and Users\captain), indicating active Akira ransomware deployment. The files are being created with full control permissions (0x120196 access mask) suggesting they are ransom notes being dropped by the malware. The pattern shows systematic deployment across multiple locations, which is characteristic of ransomware encryption campaigns.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100708_b0_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate the affected system, activate incident response procedures, and check for encrypted files. Investigate the source of the network connection from 172.22.86.78 (ASGARD-WRKSTN) and determine if this is patient zero or part of lateral movement.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware File Access Pattern Detected</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple Event ID 5145 logs show user &#x27;thor&#x27; from IP 172.22.86.78 accessing files named &#x27;akira_readme.txt&#x27; across multiple user directories (AppData, Application Data, Cookies, Desktop, Documents) on the target system. The filename &#x27;akira_readme.txt&#x27; is a known indicator of Akira ransomware deployment. The systematic access pattern across user profile directories suggests ransomware file dropping or reconnaissance activity. This represents active ransomware deployment via lateral movement from a remote system.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100740_b1_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate the affected system (Wakanda-Wrkstn.marvel.local) and the source system at IP 172.22.86.78. Check for additional Akira ransomware indicators including encrypted files with .akira extensions, ransom notes, and lateral movement to other systems. Verify if files have been encrypted and initiate incident response procedures for ransomware attack.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Activity - Remote File Access and Ransom Note Deployment</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple Event ID 5145 file access logs show the user &#x27;thor&#x27; remotely accessing the Wakanda-Wrkstn workstation via administrative share (C$) from IP 172.22.86.78 and creating/writing &#x27;akira_readme.txt&#x27; files in various user directories. This pattern is characteristic of Akira ransomware deployment, where threat actors use legitimate administrative access to spread ransom notes across target systems. The files are being placed in typical user directories (AppData, Downloads, Documents, Favorites) which is a common ransomware tactic to ensure victim visibility. The access masks show both read (0x2) and write operations (0x120196), indicating active file creation/modification rather than passive reconnaissance.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100812_b2_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate both the source system (172.22.86.78) and target workstation (Wakanda-Wrkstn). Examine the contents of akira_readme.txt files to confirm ransomware indicators. Check for file encryption activity and investigate the &#x27;thor&#x27; account for compromise. Review network logs for lateral movement patterns and identify the initial attack vector.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Attack - File Encryption and Ransom Note Deployment</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple indicators of Akira ransomware activity detected. The user &#x27;thor&#x27; is remotely accessing the C$ share of Wakanda-Wrkstn from IP 172.22.86.78 and systematically deploying ransom notes (&#x27;akira_readme.txt&#x27;) across multiple user directories. Additionally, files are being accessed with the &#x27;.arika&#x27; extension (e.g., &#x27;89b74080f90ffefc88ddbfa36070245f.arika&#x27;, &#x27;13614024a5362e6c28fbbc0063d71e59.arika&#x27;), which is characteristic of Akira ransomware encrypted files. The attack pattern shows: 1) Deployment of ransom notes in Music, Documents, AppData directories, 2) Access to encrypted files with .arika extension, 3) Remote execution via administrative shares. This represents active ransomware encryption in progress.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100904_b4_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">IMMEDIATE ACTION REQUIRED: 1) Isolate the affected system and source IP 172.22.86.78 immediately, 2) Check for lateral movement from the compromised thor account, 3) Verify if files are actually encrypted by examining file headers, 4) Initiate incident response procedures for ransomware, 5) Identify the initial compromise vector for the thor account, 6) Check for presence of Akira ransomware executables or other persistence mechanisms</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Activity - Ransom Note Deployment</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple ransom notes named &#x27;akira_readme.txt&#x27; are being created and accessed across different directories in the user &#x27;captain&#x27;s profile via administrative share access. The user &#x27;thor&#x27; is accessing the C$ share remotely from IP 172.22.86.78 and creating ransom notes in strategic locations including NetHood, Local Settings\History, and WindowsApps directories. This is consistent with Akira ransomware behavior where ransom notes are deployed to multiple locations to ensure victim awareness. The presence of .arika extension files (encrypted files) further confirms active ransomware encryption activity.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100939_b5_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate the affected system and the source IP 172.22.86.78. Check for additional systems compromised by user &#x27;thor&#x27;. Analyze the ransom note contents and begin incident response procedures for ransomware attack. Review network logs for lateral movement from the source IP.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">File Encryption Activity - Akira Ransomware</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple files with .arika extensions are being accessed, indicating active file encryption by Akira ransomware. The encrypted files include system and user data files with MD5-like hash names (e.g., &#x27;5143c8766389a0d7265da331424f400f.arika&#x27;, &#x27;984ab64fa4a3eab393d5caf504e03a27.arika&#x27;). This pattern is characteristic of Akira ransomware which encrypts files and appends the .arika extension. The remote access via C$ share suggests the encryption is being performed from a compromised account with administrative privileges.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100939_b5_1</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately disconnect the affected system from the network to prevent further encryption. Identify and isolate the source system at IP 172.22.86.78. Check backup systems and begin recovery planning. Analyze network traffic for other potentially affected systems.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">*.arika</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Activity - Remote File Access via Administrative Share</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple events show user &#x27;thor&#x27; from IP 172.22.86.78 accessing and creating &#x27;akira_readme.txt&#x27; files in various directories on the victim system via the C$ administrative share. The Akira ransomware family is known for dropping ransom notes with this exact filename pattern. The activity shows systematic traversal of user directories (WindowsApps, Local Settings, Pictures, Temp) and creation of ransom notes, which is consistent with active ransomware deployment. Additionally, there&#x27;s access to an encrypted file with &#x27;.arika&#x27; extension (5280a7a3d556d30f7d89144a6c1dff07.arika), indicating file encryption has already occurred.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101014_b6_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate the affected system and the source system at 172.22.86.78. Check for additional compromised systems, examine file system for encrypted files with .arika extension, and initiate incident response procedures for ransomware. Verify backup integrity before attempting recovery.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">akira_readme.txt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Akira Ransomware Deployment via Administrative Share</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; from IP 172.22.86.78 is remotely accessing the C$ administrative share and systematically placing &#x27;akira_readme.txt&#x27; ransomware notes across multiple directories in the &#x27;captain&#x27; user profile. The Akira ransomware group is known for targeting enterprises and deploying ransom notes with this exact filename pattern. The access pattern shows comprehensive directory traversal and file creation across user profile locations including AppData\Local\Temp, PrintHood, Recent, Temporary Internet Files, Windows Sidebar, LocalLow, and Saved Games directories - a classic ransomware deployment pattern designed to ensure victims find the ransom note.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101035_b7_0</span>
+                            <span class="meta-tag technique">T1486</span>
+                            <span class="meta-tag tactic">Impact</span>
+                        </div>
+                        <div class="recommendation">Immediately isolate both the source system (172.22.86.78) and target workstation (Wakanda-Wrkstn) from the network. Check for encryption of files on the target system and any other systems &#x27;thor&#x27; has accessed. Examine the content of akira_readme.txt files to confirm ransom demands. Review &#x27;thor&#x27; account privileges and investigate how this account was compromised. Check for lateral movement to other systems and implement emergency backup restoration procedures if encryption has occurred.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Lateral Movement via Administrative Share Access</span>
+                        
+                        <span class="finding-confidence">90% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; is remotely accessing the C$ administrative share from IP 172.22.86.78 to access another user&#x27;s (captain) profile directories. This represents lateral movement within the network using administrative shares. The systematic access to user profile folders, registry transaction files (NTUSER.DAT), and various user directories indicates reconnaissance and potential preparation for malicious activities beyond the ransomware deployment.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101014_b6_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="recommendation">Investigate the legitimacy of user &#x27;thor&#x27; accessing &#x27;captain&#x27;s profile remotely. Check if this represents authorized administrative activity or unauthorized lateral movement. Examine authentication logs for the source IP and verify if proper administrative procedures were followed.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Lateral Movement via Administrative Shares</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:08:50</span>
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Network logon (Type 3) from ASGARD-WRKSTN (172.22.86.78) followed by extensive file system access via C$ administrative share. The user &#x27;thor&#x27; is accessing sensitive directories including user profiles and system folders remotely, which is consistent with lateral movement patterns. The access includes sensitive files like &#x27;passwords.txt&#x27; and user directories, suggesting reconnaissance and data collection activities.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100708_b0_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 4624</span>
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Investigate the legitimacy of remote access from ASGARD-WRKSTN. Check if &#x27;thor&#x27; user typically performs remote administration tasks. Review network segmentation and consider restricting administrative share access.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Logon Type:</span> <span class="value">3 (Network)</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                            </div>
+                        </div>
+                        <div class="context-section">
+                            <h4>Matched Correlation Rules</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <div style="padding: 0.5rem; background: #faf5ff; border-left: 3px solid #9333ea; border-radius: 0 6px 6px 0;">
+                                    <span style="font-weight: 600; color: #7e22ce;">Potential Lateral Movement - Network Logon to Process Execution</span>
+                                    <span style="color: #6b7280; font-size: 0.875rem; margin-left: 0.5rem;">Event 4624 → 5145 via TargetLogonId→SubjectLogonId = &#x27;0x18b20bb&#x27;</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Lateral Movement via Administrative Share</span>
+                        
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; is accessing the administrative C$ share remotely from IP 172.22.86.78 to target another user&#x27;s profile directories (&#x27;captain&#x27;). This pattern of remote administrative share access to user profile directories is consistent with lateral movement techniques used by attackers to deploy malware or exfiltrate data across systems in the network.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100740_b1_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="recommendation">Investigate the legitimacy of user &#x27;thor&#x27; accessing &#x27;captain&#x27;s profile remotely. Check authentication logs for the logon session 0x18b20bb and verify if this is authorized administrative activity. Monitor for additional lateral movement indicators from IP 172.22.86.78.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Unauthorized Administrative Share Access with Directory Enumeration</span>
+                        
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; from IP 172.22.86.78 is performing extensive directory enumeration across another user&#x27;s (captain) profile via the administrative C$ share. This activity includes accessing sensitive locations like AppData directories, user folders, and system directories. The systematic nature of the access pattern (READ_CONTROL, FILE_READ_ATTRIBUTES, SYNCHRONIZE permissions) suggests reconnaissance or preparation for malicious activity. This type of lateral movement via administrative shares is commonly used by attackers to spread malware or exfiltrate data.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100841_b3_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="recommendation">Investigate the legitimacy of user &#x27;thor&#x27; accessing &#x27;captain&#x27;s&#x27; files. Review authentication logs for the source IP 172.22.86.78, check for signs of credential compromise, and examine what files may have been accessed or modified during this session.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Unauthorized Administrative Share Access</span>
+                        
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; is remotely accessing the administrative C$ share on the target system from IP 172.22.86.78, targeting another user&#x27;s profile directory (&#x27;captain&#x27;). This represents potential lateral movement using administrative credentials. The extensive file access patterns across sensitive user directories including registry files (NTUSER.DAT), application data, and system directories indicates comprehensive system compromise rather than legitimate administrative activity.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100939_b5_2</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="recommendation">Verify the legitimacy of user &#x27;thor&#x27; accessing &#x27;captain&#x27;s profile. Check for account compromise of the &#x27;thor&#x27; account. Review authentication logs for the source IP 172.22.86.78 and investigate other systems this account may have accessed.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Lateral Movement via Administrative Share Enumeration</span>
+                        
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; is performing extensive directory enumeration and file access operations on another user&#x27;s profile (&#x27;captain&#x27;) via the C$ administrative share from IP 172.22.86.78. This activity shows systematic traversal of user profile directories including AppData folders, which is consistent with lateral movement reconnaissance or data collection phases of an attack. The pattern of accessing multiple user directories via administrative shares indicates potential privilege escalation or credential compromise, as this level of access typically requires administrative privileges.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101104_b8_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="recommendation">Verify if user &#x27;thor&#x27; has legitimate administrative access to this system. Check for signs of credential compromise, review authentication logs for the &#x27;thor&#x27; account, and examine other systems accessible from IP 172.22.86.78 for similar activity patterns.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Credential Store Access via Network Share</span>
+                        
+                        <span class="finding-confidence">85% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">The user &#x27;thor&#x27; is accessing Windows credential storage locations remotely via the C$ administrative share, including the Microsoft\Protect directory and its subdirectories containing DPAPI master keys, CREDHIST file, and user-specific protection folders (S-1-5-21-1301309669-954925115-727176411-1131). These directories contain encrypted credential data and the keys needed to decrypt stored passwords, certificates, and other sensitive information. This access pattern combined with the ransom note deployment suggests credential harvesting activities as part of the ransomware attack chain.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101208_b10_1</span>
+                            <span class="meta-tag technique">T1555.004</span>
+                            <span class="meta-tag tactic">Credential Access</span>
+                        </div>
+                        <div class="recommendation">Investigate what credentials may have been compromised from the Windows Protect store. Force password resets for affected accounts, review for any credential dumping tools on the source system, and check for subsequent lateral movement using harvested credentials.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">Users\captain\AppData\Roaming\Microsoft\Protect</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">Sensitive File Access - Credentials and Business Documents</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:07:52</span>
+                        <span class="finding-confidence">75% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Remote access to sensitive files including &#x27;passwords.txt&#x27;, &#x27;quarterly-report.docx&#x27;, and &#x27;canary.pdf&#x27; via network share. These files are being accessed with full control permissions, suggesting potential data theft or reconnaissance. The &#x27;canary.pdf&#x27; file may be a honeypot, and &#x27;passwords.txt&#x27; clearly contains sensitive credential information.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100708_b0_2</span>
+                            <span class="meta-tag technique">T1005</span>
+                            <span class="meta-tag tactic">Collection</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Verify if the accessed files contain actual sensitive data. Check if &#x27;canary.pdf&#x27; is a honeypot file and if it triggered any alerts. Audit the contents of &#x27;passwords.txt&#x27; and force password resets if necessary.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">passwords.txt, quarterly-report.docx, canary.pdf</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">Systematic User Profile Directory Enumeration</span>
+                        
+                        <span class="finding-confidence">75% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">The access pattern shows systematic enumeration of user profile directories including AppData, Application Data, Cookies, Desktop, Documents, and Downloads folders. This methodical directory traversal is typical of malware reconnaissance or data collection activities, particularly when combined with the ransomware indicators.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100740_b1_2</span>
+                            <span class="meta-tag technique">T1083</span>
+                            <span class="meta-tag tactic">Discovery</span>
+                        </div>
+                        <div class="recommendation">Correlate this directory enumeration with the ransomware indicators. Check if similar enumeration patterns are occurring on other systems in the network. Review file access logs to determine what data may have been accessed or modified.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">Administrative Share Enumeration and File System Traversal</span>
+                        
+                        <span class="finding-confidence">75% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">The user &#x27;thor&#x27; is performing extensive directory enumeration across the target system&#x27;s C$ administrative share, systematically accessing user profile directories including Videos, AppData\Roaming subfolders, and various Microsoft application directories. This comprehensive file system traversal pattern is consistent with ransomware reconnaissance activities where attackers map out the file system structure before encryption operations.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210101208_b10_2</span>
+                            <span class="meta-tag technique">T1135</span>
+                            <span class="meta-tag tactic">Discovery</span>
+                        </div>
+                        <div class="recommendation">Review administrative share access policies and monitor for additional enumeration activity from the source IP. Examine file access logs to determine the full scope of directories accessed and check for any data staging or exfiltration activities.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78:53736</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">User Profile Directory Enumeration</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 14:08:50</span>
+                        <span class="finding-confidence">70% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Systematic enumeration of user profile directories including &#x27;Users\captain&#x27; and associated folders (AppData, Application Data, Cookies). This pattern is consistent with reconnaissance activities to identify valuable data locations and user-specific information for potential exfiltration or further compromise.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210100708_b0_3</span>
+                            <span class="meta-tag technique">T1083</span>
+                            <span class="meta-tag tactic">Discovery</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Monitor for subsequent data access or exfiltration attempts. Check if similar enumeration is occurring on other systems in the network. Review the legitimacy of &#x27;thor&#x27; user&#x27;s need to access &#x27;captain&#x27; user&#x27;s profile.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">Users\captain</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated by EventSight | Analysis ID: analysis_20251210_101249_f131a7ac</p>
+            <p>Report generated on 2025-12-10 at 10:15:45</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "eventsight": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "eventsight-mcp"
+      ]
+    }
+  }
+}

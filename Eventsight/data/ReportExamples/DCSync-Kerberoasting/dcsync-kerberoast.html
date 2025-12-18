@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventSight Security Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .summary-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .summary-item .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        .summary-item .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .severity-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .severity-critical { background: #fef2f2; color: #991b1b; border: 2px solid #fca5a5; }
+        .severity-high { background: #fff7ed; color: #c2410c; border: 2px solid #fdba74; }
+        .severity-medium { background: #fefce8; color: #a16207; border: 2px solid #fde047; }
+        .severity-low { background: #eff6ff; color: #1d4ed8; border: 2px solid #93c5fd; }
+        .severity-info { background: #f9fafb; color: #4b5563; border: 2px solid #d1d5db; }
+        .finding {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .finding-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .finding-severity {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .finding-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #111827;
+            flex: 1;
+        }
+        .finding-confidence {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .finding-body {
+            padding: 1.25rem;
+        }
+        .finding-description {
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .finding-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .meta-tag {
+            background: #f3f4f6;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .meta-tag.technique {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .meta-tag.tactic {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .recommendation {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            color: #065f46;
+            margin-top: 1rem;
+        }
+        .recommendation::before {
+            content: "Recommendation: ";
+            font-weight: 600;
+        }
+        .context-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .context-section h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.5rem;
+        }
+        .context-item {
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .context-item .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .context-item .value {
+            color: #111827;
+            word-break: break-all;
+        }
+        .event-ids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        .event-id {
+            background: #1e1b4b;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.875rem;
+        }
+        .no-findings {
+            text-align: center;
+            padding: 3rem;
+            color: #059669;
+        }
+        .no-findings svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EventSight Security Report</h1>
+            <p class="subtitle">Claude-Powered Windows Event Log Analysis</p>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Analysis Summary</h2>
+            </div>
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="label">File Analyzed</div>
+                        <div class="value" style="font-size: 0.9rem; word-break: break-all;">Security.evtx</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Analysis Date</div>
+                        <div class="value">2025-12-10 11:39</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Events Analyzed</div>
+                        <div class="value">79 <span style="font-size: 0.75rem; color: #6b7280;">of 117,818</span></div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Total Findings</div>
+                        <div class="value">7</div>
+                    </div>
+                </div>
+
+                <div class="severity-bar">
+                    <span class="severity-badge severity-critical">1 Critical</span>
+                    <span class="severity-badge severity-medium">2 Medium</span>
+                    <span style="color: #6b7280; font-size: 0.75rem; margin-left: 0.5rem;">(4 below MEDIUM hidden)</span>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; line-height: 1.5;">
+Detected 1 critical, 2 medium severity finding(s).<br><br>Activity Summary:<br>[M] Service Ticket Requests for Multiple User Accounts (T1558.003)<br>    → User: MARVEL.LOCAL\thor@MARVEL.LOCAL | Source: 172.22.86.79<br>[C] DCSync Attack - Replication Credential Theft (T1003.006) [Matched: DCSync]<br>    → User: MARVEL.LOCAL\thor | Source: 172.22.86.79<br>[M] Suspicious LSARPC Access Pattern (T1021.002)<br>    → User: MARVEL\thor | Source: 172.22.86.79<br><br>(4 findings below MEDIUM threshold hidden)
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Detailed Findings</h2>
+            </div>
+            <div class="card-body">
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">DCSync Attack - Replication Credential Theft</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 16:01:03</span>
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; performed DCSync operations targeting domain controller EARTH-DC. Event 4662 shows access to DS-Replication-Get-Changes (%%7688) and DS-Replication-Get-Changes-All (1131f6ad-9c07-11d1-f79f-00c04fc2dcd2) permissions, which are used to replicate Active Directory objects including password hashes. This is a classic DCSync attack technique used by tools like Mimikatz to extract credentials from domain controllers. The activity occurred via network logon (LogonType=3) from IP 172.22.86.79, indicating remote execution.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210113815_b0_0</span>
+                            <span class="meta-tag technique">T1003.006</span>
+                            <span class="meta-tag tactic">Credential Access</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 4624</span>
+                            <span class="event-id">Event 4662</span>
+                        </div>
+                        <div class="recommendation">Immediately investigate the source IP 172.22.86.79 and any processes running on that system. Check for DCSync tools like Mimikatz. Review thor&#x27;s account for compromise and consider resetting credentials. Examine network traffic for data exfiltration. This is a high-priority incident requiring immediate containment.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL.LOCAL\thor</span></div>
+                                <div class="context-item"><span class="label">Logon Type:</span> <span class="value">3 (Network)</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.79</span></div>
+                            </div>
+                        </div>
+                        <div class="context-section">
+                            <h4>Matched Correlation Rules</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <div style="padding: 0.5rem; background: #faf5ff; border-left: 3px solid #9333ea; border-radius: 0 6px 6px 0;">
+                                    <span style="font-weight: 600; color: #7e22ce;">DCSync</span>
+                                    <span style="color: #6b7280; font-size: 0.875rem; margin-left: 0.5rem;">Event 4624 → 4662 via TargetLogonId→SubjectLogonId = &#x27;0xef253&#x27;</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">Suspicious LSARPC Access Pattern</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 16:01:03</span>
+                        <span class="finding-confidence">75% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; accessed the LSARPC named pipe via network share (\\*\IPC$) with extensive permissions (AccessMask 0x12019f). LSARPC is the Local Security Authority Remote Procedure Call interface used for domain authentication operations. While legitimate administrative tools use this interface, the timing correlation with DCSync activity and the remote access pattern (from 172.22.86.79) suggests this may be related to credential dumping or domain enumeration activities.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210113815_b0_1</span>
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 4624</span>
+                            <span class="event-id">Event 5145</span>
+                        </div>
+                        <div class="recommendation">Investigate the processes and tools that initiated this LSARPC access from the source system (172.22.86.79). Cross-reference with the DCSync activity timeline. Check for credential dumping tools or unauthorized domain administration utilities.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.79:60166</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">lsarpc</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">Service Ticket Requests for Multiple User Accounts</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 15:58:07</span>
+                        <span class="finding-confidence">70% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; requested Kerberos service tickets for multiple different user accounts including &#x27;thor&#x27; and &#x27;ironman&#x27; within a short timeframe (events 4 and 5). This pattern of requesting tickets for other users could indicate Kerberoasting activity, where an attacker requests service tickets for accounts to crack offline. The requests came from IP 172.22.86.79 and used AES encryption, which is consistent with modern Kerberoasting tools.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210113815_b0_2</span>
+                            <span class="meta-tag technique">T1558.003</span>
+                            <span class="meta-tag tactic">Credential Access</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 4769</span>
+                        </div>
+                        <div class="recommendation">Investigate the source system at 172.22.86.79 for Kerberoasting tools like GetUserSPNs.py or Rubeus. Check service account configurations and consider implementing stronger passwords for service accounts. Monitor for offline password cracking attempts.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL.LOCAL\thor@MARVEL.LOCAL</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.79</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated by EventSight | Analysis ID: analysis_20251210_113911_f3e822e5</p>
+            <p>Report generated on 2025-12-10 at 11:44:41</p>
+        </footer>
+    </div>
+</body>
+</html>

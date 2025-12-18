@@ -1,0 +1,39 @@
+EventType,EventCode,Reason
+Security,4624,Successful logon - tracks authentication and lateral movement
+Security,4697,service creation - tracks service creation events
+Security,4625,Failed logon - tracks brute force and password spraying attempts
+Security,4769,Kerberos TGS Tickets - can help identify kerberoasting
+Security,4662,DCSync - Can help identify dcsync activity
+Security,4688,Process creation - tracks new processes for execution monitoring
+Security,5145,Detailed File Share - tracks file access via smb
+Sysmon,1,Process creation with command line - detailed process execution
+Sysmon,3,Network connection - tracks outbound network activity
+Sysmon,7,Image loaded - tracks DLL loading for injection detection
+Sysmon,17,Pipe Created - detects named pipe creation for C2 and lateral movement
+Sysmon,18,Pipe Connected - tracks named pipe connections for Cobalt Strike detection
+Sysmon,19,WMI EventFilter created - detects WMI persistence mechanism setup
+Sysmon,20,WMI EventConsumer created - detects WMI persistence consumer creation
+Sysmon,21,WMI EventConsumerToFilter - detects WMI persistence binding (triggers on subscription)
+PowerShell,4104,Script block logging - captures PowerShell script content
+DotNet,144,Method Load and Unload - tracks Method module loads
+DotNet,154,Assembly Load - tracks DotNet assemblies loads
+WMI,5857,Provider started - tracks WMI provider initialization for remote execution detection
+WMI,5860,WMI query execution - tracks subscription queries for persistence and lateral movement
+WMI,5861,WMI ConsumerBinding - tracks WMI event subscription
+JonMon,1,Process Creation - tracks new process execution
+JonMon,3,Remote Thread Creation - detects cross-process thread injection
+JonMon,5,Process Access - tracks process handle operations for injection detection
+JonMon,11,Named Pipe Create - detects Cobalt Strike and malicious pipe creation
+JonMon,12,Named Pipe Connect - tracks named pipe connections for lateral movement
+JonMon,16,Assembly Load - tracks DotNet assemblies loads
+JonMon,17,WMI Permanent Subscription - detects WMI persistence mechanisms
+JonMon,18,RPC Client Call - tracks outbound RPC calls for protocol abuse detection
+JonMon,19,RPC Server Call - tracks inbound RPC calls for protocol abuse detection
+JonMon,20,DPAPI CryptUnprotectData - tracks credential access via DPAPI
+JonMon,21,Network TCP Event - tracks network connections for C2 beacon detection
+JonMon,22,AMSI - captures AMSI scan events for script content analysis
+JonMon,23,Remote Read Process Memory - detects memory reading for credential theft
+JonMon,24,Remote Write Process Memory - detects memory writing for injection
+JonMon,25,Remote Virtual Allocation - detects remote memory allocation for injection
+JonMon,26,Queue User APC - detects APC-based process injection
+JonMon,27,Token Impersonation - tracks privilege escalation via token manipulation

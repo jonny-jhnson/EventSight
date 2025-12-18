@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="30">
+    <title>EventSight Continuous Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            padding: 2rem 0;
+            color: white;
+        }
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .live-badge {
+            display: inline-block;
+            background: #22c55e;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+            margin-left: 0.5rem;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.875rem;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+        .severity-critical { background: #dc2626; }
+        .severity-high { background: #ea580c; }
+        .severity-medium { background: #ca8a04; }
+        .severity-low { background: #2563eb; }
+        .severity-info { background: #6b7280; }
+        .finding {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .finding-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .finding-title {
+            font-weight: 600;
+            color: #111827;
+            flex: 1;
+        }
+        .finding-time {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        .finding-confidence {
+            color: #6b7280;
+            font-size: 0.75rem;
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        .finding-body {
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        .finding-description {
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .finding-meta {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+        .meta-tag {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: #f3f4f6;
+            border-radius: 4px;
+            color: #4b5563;
+        }
+        .meta-tag.technique {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .meta-tag.tactic {
+            background: #fae8ff;
+            color: #86198f;
+        }
+        .context-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .context-section h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        .context-grid {
+            display: grid;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .context-item .label {
+            color: #6b7280;
+        }
+        .context-item .value {
+            color: #111827;
+            font-family: monospace;
+        }
+        .recommendation {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #ecfdf5;
+            border-left: 3px solid #10b981;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.875rem;
+            color: #065f46;
+        }
+        .no-findings {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        .no-findings svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            color: #22c55e;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EventSight Continuous Monitor <span class="live-badge">LIVE</span></h1>
+            <div class="status-bar">
+                <div class="status-item">Monitoring: C:\Windows\System32\winevt\Logs\JonMon%4Operational.evtx</div>
+                <div class="status-item">Runtime: 4m 37s</div>
+                <div class="status-item">Confidence: &ge;65%</div>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Monitoring Statistics</h2>
+                <span style="color: #6b7280; font-size: 0.875rem;">Last updated: 16:36:01</span>
+            </div>
+            <div class="card-body">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">310</div>
+                        <div class="stat-label">Events Analyzed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">Total Findings</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Iterations</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #dc2626;">7</div>
+                        <div class="stat-label">Critical</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #ea580c;">6</div>
+                        <div class="stat-label">High</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #ca8a04;">2</div>
+                        <div class="stat-label">Medium</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Findings</h2>
+            </div>
+            <div class="card-body">
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="severity-badge severity-high">HIGH</span>
+                        <span class="finding-title">Suspicious Rundll32 Network Communication</span>
+                        <span class="finding-time">2025-12-17 16:36:01</span>
+                        <span class="finding-confidence">85%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Rundll32.exe running as NT AUTHORITY\SYSTEM is establishing multiple network connections between internal hosts (172.22.78.183 and 172.22.71.213) on high port 29922. Legitimate rundll32 usage requires explicit DLL/function parameters and rarely involves network communication. This pattern suggests process injection, C2 communication, or abuse as a traffic proxy.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">rundll32.exe (PID 14232)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.78.183</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Investigate the rundll32.exe process for signs of injection. Check command line arguments to verify legitimate DLL/function usage. Monitor network traffic to port 29922 for potential C2 beaconing patterns. Examine memory dumps of the process for injected code.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">DCSync Attack - Directory Replication Service Abuse</span>
+                        <span class="finding-time">2025-12-17 16:36:01</span>
+                        <span class="finding-confidence">95%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">DllHost.exe process running as MARVEL\thor is performing MS-DRSR GetNCChanges operations against domain controller Earth-DC.marvel.local. This is a classic DCSync attack where an attacker uses legitimate directory replication protocols to extract password hashes from Active Directory, including KRBTGT and other privileged accounts.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1003.006</span>
+                            <span class="meta-tag tactic">Credential Access</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">dllhost.exe (PID 6936)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately investigate user account MARVEL\thor for compromise. Check for recently created service accounts with DCSync privileges. Review domain controller logs for unusual replication requests. Disable the compromised account and reset passwords for all privileged accounts.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="severity-badge severity-high">HIGH</span>
+                        <span class="finding-title">Suspicious LSARPC Named Pipe Access from DllHost</span>
+                        <span class="finding-time">2025-12-17 16:35:39</span>
+                        <span class="finding-confidence">85%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">DllHost.exe (PID 6936) accessed the LSARPC named pipe (\Device\Mup\Earth-DC.marvel.local\PIPE\lsarpc) on domain controller Earth-DC. This indicates potential LSA enumeration or DCSync preparation activities, commonly used for domain reconnaissance or credential extraction attempts.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1087.002</span>
+                            <span class="meta-tag tactic">Discovery</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">dllhost.exe (PID 6936)</span></div>
+                                <div class="context-item"><span class="label">Command:</span> <span class="value">C:\WINDOWS\system32\dllhost.exe</span></div>
+                                <div class="context-item"><span class="label">Parent:</span> <span class="value">powershell.exe</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">\Device\Mup\Earth-DC.marvel.local\PIPE\lsarpc</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Monitor for subsequent DCSync attempts, check for domain enumeration activities, and verify if the user thor has legitimate administrative need to access LSA services on the domain controller.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="severity-badge severity-high">HIGH</span>
+                        <span class="finding-title">PowerShell Spawning DllHost for Lateral Movement</span>
+                        <span class="finding-time">2025-12-17 16:35:39</span>
+                        <span class="finding-confidence">88%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">PowerShell (PID 11696) spawned dllhost.exe (PID 6936) with no command-line arguments, followed by remote thread creation and immediate network communication to internal systems. This pattern indicates lateral movement through process injection, where PowerShell creates a &#x27;sacrificial process&#x27; to perform malicious network operations while avoiding direct PowerShell network attribution.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">dllhost.exe (PID 6936)</span></div>
+                                <div class="context-item"><span class="label">Command:</span> <span class="value">C:\WINDOWS\system32\dllhost.exe</span></div>
+                                <div class="context-item"><span class="label">Parent:</span> <span class="value">powershell.exe</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Analyze the PowerShell command history and scripts executed by PID 11696, investigate the purpose of network communication to 172.22.86.74, and examine dllhost.exe memory for injected payloads.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">Rundll32 Network Communication Without Command-Line Arguments</span>
+                        <span class="finding-time">2025-12-17 16:35:39</span>
+                        <span class="finding-confidence">92%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Rundll32.exe (PID 14232) running as NT AUTHORITY\SYSTEM is engaging in bidirectional network communication without visible command-line arguments specifying DLL and export function parameters. This pattern strongly indicates process injection, C2 communication, or abuse as a traffic proxy, as legitimate rundll32 usage requires explicit DLL/function parameters.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">rundll32.exe (PID 14232)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.71.213</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately investigate the parent process that spawned rundll32.exe PID 14232, examine process memory for injected code, and analyze network traffic to determine the nature of communication with 172.22.71.213.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="severity-badge severity-medium">MEDIUM</span>
+                        <span class="finding-title">PowerShell Network Communication During Attack Tool Execution</span>
+                        <span class="finding-time">2025-12-17 16:35:10</span>
+                        <span class="finding-confidence">78%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">PowerShell process established multiple network connections to 172.22.86.74 on ports 28130 and 28386 while executing the Rubeus Kerberos attack tool. This network activity coinciding with offensive tool execution suggests potential data exfiltration or C2 communication.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1041</span>
+                            <span class="meta-tag tactic">Exfiltration</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">powershell.exe (PID 11696)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Analyze network traffic to determine if sensitive data was exfiltrated. Investigate the destination IP 172.22.86.74 for signs of compromise or unauthorized data staging.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="severity-badge severity-high">HIGH</span>
+                        <span class="finding-title">Suspicious Named Pipe Access - &#x27;totesLegit&#x27;</span>
+                        <span class="finding-time">2025-12-17 16:35:10</span>
+                        <span class="finding-confidence">88%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">PowerShell process accessed a named pipe with a deliberately deceptive name &#x27;totesLegit&#x27;. This naming convention is commonly used by Cobalt Strike&#x27;s inlineExecute-Assembly technique and other post-exploitation frameworks as a form of operational security humor, making it a reliable indicator of C2 activity.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">powershell.exe (PID 11696)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">\Device\NamedPipe\totesLegit</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Investigate the PowerShell process for signs of Cobalt Strike beacon activity. Check for related processes creating or connecting to this named pipe and examine network communications.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">Rubeus Kerberos Attack Tool Execution in PowerShell</span>
+                        <span class="finding-time">2025-12-17 16:35:10</span>
+                        <span class="finding-confidence">95%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">PowerShell process (PID 11696) loaded the Rubeus .NET assembly, a well-known offensive security tool used for Kerberos ticket manipulation attacks. This is accompanied by loading of System.DirectoryServices.Protocols and System.IdentityModel assemblies, which are commonly used for Active Directory attacks. The process also accessed a suspicious named pipe &#x27;totesLegit&#x27;.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1558</span>
+                            <span class="meta-tag tactic">Credential Access</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">powershell.exe (PID 11696)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">\Device\NamedPipe\totesLegit</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately investigate for Kerberos attacks such as ticket extraction, golden/silver ticket creation, or Kerberoasting. Check for unusual Kerberos events and examine any tickets created by this user.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">Rundll32.exe Process Injection and Network Communication</span>
+                        <span class="finding-time">2025-12-17 16:35:10</span>
+                        <span class="finding-confidence">92%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Rundll32.exe (PID 14232) is establishing multiple network connections without command-line arguments specifying a DLL and export function. This indicates potential process injection or abuse as a traffic proxy. The extensive bidirectional network activity on non-standard ports is consistent with C2 communication patterns.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">rundll32.exe (PID 14232)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.71.213</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately investigate the rundll32.exe process for signs of injection. Check parent process, loaded modules, and network destinations. Block network communications if confirmed malicious.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">Rundll32 Network Communication Without Command Line Arguments</span>
+                        <span class="finding-time">2025-12-17 16:34:38</span>
+                        <span class="finding-confidence">95%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">rundll32.exe (PID 14232) running as SYSTEM is engaging in bidirectional network communication with internal IP 172.22.71.213 on port 27874. This is highly suspicious as legitimate rundll32 usage requires explicit DLL/function parameters in the command line, but no process creation event shows the command line for this rundll32 instance. The network activity pattern suggests C2 communication or process injection abuse.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">rundll32.exe (PID 14232)</span></div>
+                                <div class="context-item"><span class="label">Command:</span> <span class="value">Unknown - no creation event captured</span></div>
+                                <div class="context-item"><span class="label">Parent:</span> <span class="value">Unknown</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.78.183</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately investigate the rundll32.exe process (PID 14232) for signs of process injection. Check parent process, look for associated process creation events, and analyze network traffic to 172.22.71.213:27874. This may indicate Cobalt Strike beacon or similar malware.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="severity-badge severity-high">HIGH</span>
+                        <span class="finding-title">PowerShell Process Injection via Mojo Named Pipe</span>
+                        <span class="finding-time">2025-12-17 16:33:22</span>
+                        <span class="finding-confidence">90%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">PowerShell.exe running under user context (MARVEL\thor) is accessing the same Cobalt Strike mojo named pipe that rundll32 is using for C2 communication. This indicates process injection where PowerShell is being used as part of the beacon&#x27;s post-exploitation activities, likely for command execution or lateral movement preparation.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">powershell.exe (PID 134104624331238832)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">\Device\NamedPipe\mojo.5688.8052.18389493978708887759</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Investigate PowerShell activity for MARVEL\thor user account. Review command history, examine any spawned child processes, and check for signs of credential harvesting or lateral movement attempts.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">Cobalt Strike C2 Communication via Rundll32 with Mojo Named Pipe</span>
+                        <span class="finding-time">2025-12-17 16:33:22</span>
+                        <span class="finding-confidence">95%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Rundll32.exe running as SYSTEM is communicating over TCP with internal hosts while accessing Cobalt Strike-style mojo named pipes. This pattern indicates C2 beacon activity using rundll32 as a sacrificial process for network communication and IPC. The bidirectional network traffic between 172.22.71.213 and 172.22.78.183 combined with mojo pipe access strongly suggests active Cobalt Strike beacon communication.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">Defense Evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">rundll32.exe (PID 14232)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.71.213</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">\Device\NamedPipe\mojo.5688.8052.18389493978708887759</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately isolate the affected system and investigate the rundll32 process (PID 14232). Check for signs of process injection, examine network communications to both IP addresses, and hunt for additional beacons or lateral movement activity.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="severity-badge severity-medium">MEDIUM</span>
+                        <span class="finding-title">Multiple System Process Network Activity - Potential Lateral Movement Infrastructure</span>
+                        <span class="finding-time">2025-12-17 16:33:02</span>
+                        <span class="finding-confidence">65%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple critical system processes (lsass.exe, services.exe, svchost.exe) engaged in simultaneous network communication patterns between 172.22.86.78, 172.22.86.79, and 172.22.86.74. This coordinated activity across system processes suggests potential lateral movement or administrative tool usage.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1021</span>
+                            <span class="meta-tag tactic">lateral-movement</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">multiple_system_processes</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78,172.22.86.79,172.22.86.74</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Correlate this activity with authentication logs and administrative actions. Verify if this represents legitimate administrative activity or potential lateral movement. Monitor for additional suspicious processes spawned on these systems.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="severity-badge severity-high">HIGH</span>
+                        <span class="finding-title">Rundll32 Network Communication - Potential C2 Beaconing</span>
+                        <span class="finding-time">2025-12-17 16:33:02</span>
+                        <span class="finding-confidence">88%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Rundll32.exe (PID 14232) established network connections to 172.22.71.213 on ports 26594 and 27106 with a regular beaconing pattern. The connections show bidirectional traffic typical of C2 communication, and rundll32 network activity is highly suspicious as it indicates potential process injection or C2 proxy usage.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1055</span>
+                            <span class="meta-tag tactic">defense-evasion</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">rundll32.exe (PID 14232)</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.78.183</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Investigate the rundll32.exe process for injection indicators. Analyze network traffic to 172.22.71.213 for C2 patterns. Check process creation events for this PID to determine the parent process and command line arguments.</div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="severity-badge severity-critical">CRITICAL</span>
+                        <span class="finding-title">Remote Service Installation and Cobalt Strike Beacon Deployment</span>
+                        <span class="finding-time">2025-12-17 16:33:02</span>
+                        <span class="finding-confidence">95%</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Services.exe executed a suspicious binary (7cf26d8.exe) from a remote ADMIN$ share (\\172.22.86.78\ADMIN$\7cf26d8.exe), which then accessed a Cobalt Strike named pipe &#x27;MSSE-5477-server&#x27;. This indicates lateral movement via remote service installation followed by beacon deployment.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag technique">T1021.002</span>
+                            <span class="meta-tag tactic">lateral-movement</span>
+                        </div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">services.exe (PID 1152)</span></div>
+                                <div class="context-item"><span class="label">Command:</span> <span class="value">\\172.22.86.78\ADMIN$\7cf26d8.exe</span></div>
+                                <div class="context-item"><span class="label">Parent:</span> <span class="value">services.exe</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">NT AUTHORITY\NT AUTHORITY\SYSTEM</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">172.22.86.78</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">\Device\NamedPipe\MSSE-5477-server</span></div>
+                            </div>
+                        </div>
+                        <div class="recommendation">Immediately investigate the source system 172.22.86.78 and isolate both systems. Check for additional Cobalt Strike artifacts and examine the 7cf26d8.exe binary. Review service creation logs and network activity.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>EventSight Continuous Monitor | Started: 2025-12-17 16:31:24</p>
+            <p>Page auto-refreshes every 30 seconds</p>
+        </footer>
+    </div>
+</body>
+</html>

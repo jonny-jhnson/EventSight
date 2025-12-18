@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventSight Security Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .summary-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .summary-item .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        .summary-item .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .severity-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .severity-critical { background: #fef2f2; color: #991b1b; border: 2px solid #fca5a5; }
+        .severity-high { background: #fff7ed; color: #c2410c; border: 2px solid #fdba74; }
+        .severity-medium { background: #fefce8; color: #a16207; border: 2px solid #fde047; }
+        .severity-low { background: #eff6ff; color: #1d4ed8; border: 2px solid #93c5fd; }
+        .severity-info { background: #f9fafb; color: #4b5563; border: 2px solid #d1d5db; }
+        .finding {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .finding-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .finding-severity {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .finding-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #111827;
+            flex: 1;
+        }
+        .finding-confidence {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .finding-body {
+            padding: 1.25rem;
+        }
+        .finding-description {
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .finding-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .meta-tag {
+            background: #f3f4f6;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .meta-tag.technique {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .meta-tag.tactic {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .recommendation {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            color: #065f46;
+            margin-top: 1rem;
+        }
+        .recommendation::before {
+            content: "Recommendation: ";
+            font-weight: 600;
+        }
+        .context-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .context-section h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.5rem;
+        }
+        .context-item {
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .context-item .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .context-item .value {
+            color: #111827;
+            word-break: break-all;
+        }
+        .event-ids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        .event-id {
+            background: #1e1b4b;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.875rem;
+        }
+        .no-findings {
+            text-align: center;
+            padding: 3rem;
+            color: #059669;
+        }
+        .no-findings svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EventSight Security Report</h1>
+            <p class="subtitle">Claude-Powered Windows Event Log Analysis</p>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Analysis Summary</h2>
+            </div>
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="label">File Analyzed</div>
+                        <div class="value" style="font-size: 0.9rem; word-break: break-all;">2 files: Security.evtx, DotNet.evtx</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Analysis Date</div>
+                        <div class="value">2025-12-10 12:12</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Events Analyzed</div>
+                        <div class="value">42 <span style="font-size: 0.75rem; color: #6b7280;">of 288</span></div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Total Findings</div>
+                        <div class="value">5</div>
+                    </div>
+                </div>
+
+                <div class="severity-bar">
+                    <span class="severity-badge severity-critical">1 Critical</span>
+                    <span class="severity-badge severity-high">2 High</span>
+                    <span class="severity-badge severity-medium">1 Medium</span>
+                    <span style="color: #6b7280; font-size: 0.75rem; margin-left: 0.5rem;">(1 below MEDIUM hidden)</span>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; line-height: 1.5;">
+Detected 1 critical, 2 high, 1 medium severity finding(s).<br><br>Activity Summary:<br>[H] Network Logon from Remote System with PowerShell/WinRM Activity (T1021.006)<br>    → User: MARVEL.LOCAL\thor | Process: wsmprovhost.exe | Source: 192.168.55.183<br>[C] Rubeus Kerberos Attack Tool Loaded (T1558)<br>[H] Suspicious Service Installation in User Temp Directory (T1543.003)<br>    → User: MARVEL\thor | Process: sc.exe | Parent: C:\Windows\System32\cmd.exe<br>[M] System.DirectoryServices.Protocols Assembly Loaded (T1087.002)<br><br>(1 findings below MEDIUM threshold hidden)
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Detailed Findings</h2>
+            </div>
+            <div class="card-body">
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fef2f2;">
+                        <span class="finding-severity" style="background: #dc2626; color: white;">CRITICAL</span>
+                        <span class="finding-title">Rubeus Kerberos Attack Tool Loaded</span>
+                        
+                        <span class="finding-confidence">95% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">The Rubeus assembly (Version=1.0.0.0, Culture=neutral, PublicKeyToken=null) was loaded in process 9796. Rubeus is a well-known offensive security tool used for Kerberos ticket manipulation, including golden ticket attacks, silver ticket attacks, Kerberoasting, and AS-REP roasting. This indicates active use of a malicious tool for credential access and lateral movement attacks. The assembly was loaded alongside System.DirectoryServices.Protocols, suggesting Active Directory targeting.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210121225_b1_0</span>
+                            <span class="meta-tag technique">T1558</span>
+                            <span class="meta-tag tactic">Credential Access</span>
+                        </div>
+                        <div class="recommendation">Immediately investigate process 9796, identify the parent process and user context. Check for any Kerberos tickets created, modified, or extracted. Review domain controller logs for suspicious Kerberos activity. Isolate the affected system and scan for additional compromise indicators.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Assembly:</span> <span class="value">Rubeus, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Suspicious Service Installation in User Temp Directory</span>
+                        
+                        <span class="finding-confidence">90% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">User &#x27;thor&#x27; created a Windows service named &#x27;WindowsUpdater&#x27; with binary path &#x27;C:\Users\thor\AppData\Local\Temp\win-svc.exe&#x27; configured for automatic startup. The service was created via cmd.exe spawned by wsmprovhost.exe (indicating PowerShell Remoting execution). This pattern indicates persistence establishment using a service with a deceptive name located in a user-writable directory, which is highly suspicious as legitimate services are installed by administrators to system directories.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210121225_b1_1</span>
+                            <span class="meta-tag technique">T1543.003</span>
+                            <span class="meta-tag tactic">Persistence</span>
+                        </div>
+                        <div class="recommendation">Immediately stop and remove the &#x27;WindowsUpdater&#x27; service. Analyze the win-svc.exe binary for malicious functionality. Investigate how user &#x27;thor&#x27; gained the ability to create services and review the PowerShell Remoting session that initiated this activity.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">sc.exe</span></div>
+                                <div class="context-item"><span class="label">Command Line:</span> <span class="value">sc.exe  create WindowsUpdater binpath= C:\Users\thor\AppData\Local\Temp\win-svc.exe start= auto</span></div>
+                                <div class="context-item"><span class="label">Parent Process:</span> <span class="value">C:\Windows\System32\cmd.exe</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL\thor</span></div>
+                                <div class="context-item"><span class="label">File:</span> <span class="value">C:\Users\thor\AppData\Local\Temp\win-svc.exe</span></div>
+                                <div class="context-item"><span class="label">Service:</span> <span class="value">WindowsUpdater</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fff7ed;">
+                        <span class="finding-severity" style="background: #ea580c; color: white;">HIGH</span>
+                        <span class="finding-title">Network Logon from Remote System with PowerShell/WinRM Activity</span>
+                        <span style="color: #6b7280; font-size: 0.875rem; margin-left: auto;">2025-12-10 03:17:50</span>
+                        <span class="finding-confidence">70% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">Multiple network logons (Event 4624, LogonType=3) from IP 192.168.55.183 for user &#x27;thor&#x27; followed by wsmprovhost.exe execution. This pattern indicates remote PowerShell/WinRM activity. The loading of System.DirectoryServices and System.Management.Automation assemblies suggests potential Active Directory enumeration or administrative activities. While this could be legitimate remote administration, the combination of network logons and AD-related assembly loading warrants investigation.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210121150_b0_0</span>
+                            <span class="meta-tag technique">T1021.006</span>
+                            <span class="meta-tag tactic">Lateral Movement</span>
+                        </div>
+                        <div class="event-ids">
+                            <span class="event-id">Event 154</span>
+                            <span class="event-id">Event 4624</span>
+                            <span class="event-id">Event 4688</span>
+                        </div>
+                        <div class="recommendation">Verify if the source IP 192.168.55.183 is an authorized administrative system. Review what PowerShell commands were executed and examine the specific AD operations performed. Check if this remote access aligns with expected administrative activities for the thor user.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Process:</span> <span class="value">wsmprovhost.exe</span></div>
+                                <div class="context-item"><span class="label">User:</span> <span class="value">MARVEL.LOCAL\thor</span></div>
+                                <div class="context-item"><span class="label">Logon Type:</span> <span class="value">3 (Network)</span></div>
+                                <div class="context-item"><span class="label">Source IP:</span> <span class="value">192.168.55.183</span></div>
+                                <div class="context-item"><span class="label">Assembly:</span> <span class="value">System.DirectoryServices, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finding">
+                    <div class="finding-header" style="background: #fefce8;">
+                        <span class="finding-severity" style="background: #ca8a04; color: white;">MEDIUM</span>
+                        <span class="finding-title">System.DirectoryServices.Protocols Assembly Loaded</span>
+                        
+                        <span class="finding-confidence">80% confidence</span>
+                    </div>
+                    <div class="finding-body">
+                        <p class="finding-description">The System.DirectoryServices.Protocols assembly was loaded in process 9796, which provides LDAP and Active Directory manipulation capabilities. This assembly is rarely used by legitimate applications and was loaded in the same process context as the Rubeus attack tool, indicating potential Active Directory enumeration or attack preparation.</p>
+                        <div class="finding-meta">
+                            <span class="meta-tag">ID: finding_20251210121225_b1_2</span>
+                            <span class="meta-tag technique">T1087.002</span>
+                            <span class="meta-tag tactic">Discovery</span>
+                        </div>
+                        <div class="recommendation">Investigate process 9796 for Active Directory enumeration activities. Review domain controller logs for unusual LDAP queries from this system. This finding should be analyzed in conjunction with the Rubeus tool detection.</div>
+                        <div class="context-section">
+                            <h4>Security Context</h4>
+                            <div class="context-grid">
+                                <div class="context-item"><span class="label">Assembly:</span> <span class="value">System.DirectoryServices.Protocols, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated by EventSight | Analysis ID: analysis_20251210_121225_40ffac2d</p>
+            <p>Report generated on 2025-12-10 at 12:15:21</p>
+        </footer>
+    </div>
+</body>
+</html>

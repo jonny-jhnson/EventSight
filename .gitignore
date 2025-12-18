@@ -1,0 +1,5 @@
+# Claude Code settings (user-specific)
+.claude/
+
+# Large files
+*.zip

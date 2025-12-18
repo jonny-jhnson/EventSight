@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eventsight"
+version = "1.0.0"
+description = "EventSight - AI-powered Windows Event Log analyzer that learns from analyst feedback"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Logging",
+]
+keywords = ["security", "evtx", "windows", "event-log", "ai", "threat-detection", "eventsight"]
+dependencies = [
+    "anthropic>=0.40.0",
+    "python-evtx>=0.7.4",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "prompt_toolkit>=3.0.0",
+    "pydantic>=2.0.0",
+    "python-dateutil>=2.8.0",
+    "sentence-transformers>=3.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "black",
+    "ruff",
+]
+
+[project.scripts]
+eventsight = "eventsight.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/eventsight"
+Documentation = "https://github.com/yourusername/eventsight#readme"
+Repository = "https://github.com/yourusername/eventsight"
+Issues = "https://github.com/yourusername/eventsight/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eventsight"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]

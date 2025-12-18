@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Environment files
+.env
+
+# IDE/Editor
+.idea/
+.vscode/
+
+# Ruff
+.ruff_cache/
+
+# Claude Code settings (user-specific)
+.claude/

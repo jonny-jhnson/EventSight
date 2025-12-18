@@ -1,0 +1,30 @@
+[project]
+name = "eventsight-mcp"
+version = "1.0.0"
+description = "MCP Server for EventSight - Claude-Powered Windows Event Log Analysis"
+requires-python = ">=3.10"
+authors = [
+    { name = "Jonathan Johnson", email = "jonny@example.com" }
+]
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "anthropic>=0.39.0",
+    "pydantic>=2.0.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+eventsight-mcp = "eventsight_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eventsight_mcp"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+]
